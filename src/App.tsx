@@ -1,23 +1,70 @@
-import React from 'react';
-import { BrowserRouter } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
+import { useEffect, useState } from 'react';
 
-import Routes from './routes';
-import GlobalStyles from './styles/global';
-import Header from './components/Header';
-import { CartProvider } from './hooks/useCart';
+import { Button } from './components/Button';
 
-const App = (): JSX.Element => {
+// import { SideBar } from './components/SideBar';
+import { Content } from './components/Content';
+import { SideBar } from './components/SideBar';
+
+import { api } from './services/api';
+
+import './styles/global.scss';
+
+import './styles/sidebar.scss';
+
+export interface GenreResponseProps {
+  id: number;
+  name: 'action' | 'comedy' | 'documentary' | 'drama' | 'horror' | 'family';
+  title: string;
+}
+
+export interface MovieProps {
+  Title: string;
+  Poster: string;
+  Ratings: Array<{
+    Source: string;
+    Value: string;
+  }>;
+  Runtime: string;
+}
+
+export function App() {
+  const [selectedGenreId, setSelectedGenreId] = useState(1);
+
+  const [genres, setGenres] = useState<GenreResponseProps[]>([]);
+
+  const [movies, setMovies] = useState<MovieProps[]>([]);
+  const [selectedGenre, setSelectedGenre] = useState<GenreResponseProps>({} as GenreResponseProps);
+
+  useEffect(() => {
+    api.get<GenreResponseProps[]>('genres').then(response => {
+      setGenres(response.data);
+    });
+  }, []);
+
+  useEffect(() => {
+    api.get<MovieProps[]>(`movies/?Genre_id=${selectedGenreId}`).then(response => {
+      setMovies(response.data);
+    });
+
+    api.get<GenreResponseProps>(`genres/${selectedGenreId}`).then(response => {
+      setSelectedGenre(response.data);
+    })
+  }, [selectedGenreId]);
+
+  function handleClickButton(id: number) {
+    setSelectedGenreId(id);
+  }
+
   return (
-    <BrowserRouter>
-      <CartProvider>
-        <GlobalStyles />
-        <Header />
-        <Routes />
-        <ToastContainer autoClose={3000} />
-      </CartProvider>
-    </BrowserRouter>
-  );
-};
+    <div style={{ display: 'flex', flexDirection: 'row' }}>
+      <SideBar 
+        genres={genres}
+        selectedGenreId={selectedGenreId}
+        handleClick={handleClickButton} 
+      />
 
-export default App;
+      <Content selectedGenre={selectedGenre} movies={movies} />
+    </div>
+  )
+}
